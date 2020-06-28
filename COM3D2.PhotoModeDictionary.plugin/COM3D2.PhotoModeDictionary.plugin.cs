@@ -32,7 +32,7 @@ using ExIni;
 namespace COM3D2.PhotoModeDictionary.Plugin
 {
     [PluginFilter("COM3D2x64")]
-    [PluginName("PhotoMode Dictionary Plugin"), PluginVersion("0.2.0 edit by lilly 002")]
+    [PluginName("PhotoMode Dictionary Plugin"), PluginVersion("0.2.0 edit by lilly 003")]
     public class PhotoModeDictionaryPlugin : PluginBase
     {
         private ConstructorInfo photoMotionData_constructor = typeof(PhotoMotionData).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[0], null);
@@ -42,24 +42,44 @@ namespace COM3D2.PhotoModeDictionary.Plugin
         private static bool V133 = false;
         private MethodInfo _m_SetData = typeof(PopupAndTabList).GetMethod("SetData", BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
 
-		public void Awake()
+        IniKey path ;
+
+        public void Awake()
 		{
             //Debug.Log("PhotoModeDictionary Awake ");
 			try
 			{
 				GameObject.DontDestroyOnLoad(this);
 				SceneManager.sceneLoaded += OnSceneLoaded;
-			}
+            }
 			catch (Exception e)
 			{
 				Debug.LogError(e.ToString());
 			}
 		}
 
+        //설정값 생성 테스트
+        private void LoadConfig()
+        {
+            // Using Preferences property definied in PluginBase.
+            // Gets property Foo defined in section Baz.
+            path = Preferences["Config"]["path"];
+            // If Foo wasn't defined in the preferences, ExIni creates a property named Foo with 'null' as a value.
+            // If that is the case (or the value of Foo is empty), just set the value to default and save the preferences
+            // by calling SaveConfig() (also defined in PluginBase).
+            if (string.IsNullOrEmpty(path.Value))
+            {
+                path.Value = @"PhotoModeData\MyPose";
+                SaveConfig();
+            }
+            Debug.Log("PhotoModeDictionary.LoadConfig.path : " + path.Value);
+        }
+
+
         //장면이 바뀔때마다
-		private void OnSceneLoaded(Scene scene, LoadSceneMode sceneMode)
+        private void OnSceneLoaded(Scene scene, LoadSceneMode sceneMode)
 		{
-            //Debug.Log("PhotoModeDictionary OnSceneLoaded :"+scene.name);
+            Debug.Log("PhotoModeDictionary.OnSceneLoaded : "+scene.name);
             StopAllCoroutines();
 			try
 			{
@@ -68,6 +88,7 @@ namespace COM3D2.PhotoModeDictionary.Plugin
 				if (scene.name == "ScenePhotoMode")
 				//if (scene.buildIndex == 26)
 				{
+                    LoadConfig();
                     if (!loaded)
                     {            
                         loaded = true;            
@@ -126,7 +147,8 @@ namespace COM3D2.PhotoModeDictionary.Plugin
                         PhotoMotionData.popup_category_list.Add(new KeyValuePair<string, UnityEngine.Object>(categoryName, null));
                     }
                     wasSetToPhotoMotionData = true;
-                    Console.WriteLine("Yotogi Motion Data set to the PhotoMotionData");
+                    Debug.Log("PhotoModeDictionary.OnSceneLoaded : Yotogi Motion Data set to the PhotoMotionData");
+                    //Console.WriteLine("Yotogi Motion Data set to the PhotoMotionData");
                     yield break;
                 }
                 yield return new WaitForSeconds(1.0f);
@@ -185,14 +207,17 @@ namespace COM3D2.PhotoModeDictionary.Plugin
             // PhotoModeData\MyPose아래의 디렉토리를 추가
             try
             {
-                foreach (string DirectoryName in Directory.GetDirectories(Directory.GetCurrentDirectory() + @"\Mod\PhotoMode", "*", SearchOption.TopDirectoryOnly))
+                Debug.Log("PhotoModeDictionary.LoadAndAddPhotoMotionDataFromYotogiData.GetCurrentDirectory : " + Directory.GetCurrentDirectory());
+                foreach (string DirectoryName in Directory.GetDirectories(Directory.GetCurrentDirectory() + @"\" + path.Value, "*", SearchOption.TopDirectoryOnly))
                 {
+                    Debug.Log("PhotoModeDictionary.LoadAndAddPhotoMotionDataFromYotogiData.DirectoryName : " + DirectoryName);
                     uint nameCRC = 0;
                     category_motions = new List<PhotoMotionData>();
                     yotogiMotions.Add(Path.GetFileNameWithoutExtension(DirectoryName), category_motions);
                     //                foreach(string FileName in Directory.EnumerateFiles(DirectoryName,"*.anm")){
                     foreach (string FileName in Directory.GetFiles(DirectoryName, "*.anm", SearchOption.TopDirectoryOnly))
                     {
+                        Debug.Log("PhotoModeDictionary.LoadAndAddPhotoMotionDataFromYotogiData.FileName : "+ FileName);
                         wf.CRC32 crc = new wf.CRC32();
                         nameCRC = crc.ComputeChecksum(Encoding.UTF8.GetBytes(FileName));
                         PhotoMotionData motionData = (PhotoMotionData)photoMotionData_constructor.Invoke(null);
@@ -210,7 +235,7 @@ namespace COM3D2.PhotoModeDictionary.Plugin
             }
             catch (Exception)
             {
-                Console.WriteLine(@"\Mod\PhotoMode 디렉토리 없음 ");
+                Console.WriteLine(@"PhotoModeDictionary : \Mod\PhotoMode 디렉토리 없음 ");
             }
         }
 
