@@ -61,6 +61,7 @@ namespace COM3D2.PhotoModeDictionary.Plugin
         //설정값 생성 테스트
         private void LoadConfig()
         {
+            ReloadConfig();
             // Using Preferences property definied in PluginBase.
             // Gets property Foo defined in section Baz.
             path = Preferences["Config"]["path"];
