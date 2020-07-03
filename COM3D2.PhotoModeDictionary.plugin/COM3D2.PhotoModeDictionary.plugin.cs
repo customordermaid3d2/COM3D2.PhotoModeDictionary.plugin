@@ -32,15 +32,17 @@ using ExIni;
 namespace COM3D2.PhotoModeDictionary.Plugin
 {
     [PluginFilter("COM3D2x64")]
-    [PluginName("PhotoMode Dictionary Plugin"), PluginVersion("0.2.0 edit by lilly 003")]
+    [PluginName("PhotoMode Dictionary Plugin"), PluginVersion("0.2.0 edit by lilly 200629")]
     public class PhotoModeDictionaryPlugin : PluginBase
     {
-        private ConstructorInfo photoMotionData_constructor = typeof(PhotoMotionData).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[0], null);
+        private ConstructorInfo photoMotionData_constructor = typeof(PhotoMotionData).GetConstructor(
+            BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[0], null);
         private Dictionary<string, List<PhotoMotionData>> yotogiMotions;
         private static bool wasSetToPhotoMotionData = false;
         private static bool loaded = false;
         private static bool V133 = false;
-        private MethodInfo _m_SetData = typeof(PopupAndTabList).GetMethod("SetData", BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
+        private MethodInfo _m_SetData = typeof(PopupAndTabList).GetMethod(
+            "SetData", BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
 
         IniKey path ;
 
@@ -90,11 +92,11 @@ namespace COM3D2.PhotoModeDictionary.Plugin
 				//if (scene.buildIndex == 26)
 				{
                     LoadConfig();
-                    if (!loaded)
-                    {            
-                        loaded = true;            
-                        LoadAndAddPhotoMotionDataFromYotogiData();            
-                    }     
+                    //if (!loaded)
+                    //{            
+                    //    loaded = true;            
+                    //    LoadAndAddPhotoMotionDataFromYotogiData();            
+                    //}     
                     LoadAndAddPhotoMotionDataFromYotogiData();  
                     StartCoroutine(SetYotogiMotionData());
                     StartCoroutine(SetToMotionWindow());
@@ -167,28 +169,43 @@ namespace COM3D2.PhotoModeDictionary.Plugin
                 MotionWindow motionWindow = GameObject.FindObjectOfType<MotionWindow>();
                 if (motionWindow != null && wasSetToPhotoMotionData)
                 {
+                    Dictionary<string, List<string>> dictionary = new Dictionary<string, List<string>>();
                     Dictionary<string, List<KeyValuePair<string, object>>> dic = new Dictionary<string, List<KeyValuePair<string, object>>>();
                     foreach (var entry in PhotoMotionData.category_list)
                     {
                         List<KeyValuePair<string, object>> list = new List<KeyValuePair<string, object>>();
+                        List<string> list2 = new List<string>();
+
                         dic.Add(entry.Key, list);
+                        dictionary.Add(entry.Key, list2);
                         foreach (PhotoMotionData data in entry.Value)
                         {
                             list.Add(new KeyValuePair<string, object>(data.name, data));
+                            list2.Add(data.nameTerm);
                         }
+
+                        //dic[entry.Key].Add(new KeyValuePair<string, object>(data.name, entry.Value[i]));
+                        //dictionary[entry.Key].Add(data.nameTerm);
                     }
 
+
                     //1.33 (VR 1.20) と 1.34 では SetData のシグニチャが異なるためチェックが必要。 
+                    //1.33 (VR 1.20) と 1.34 는 SetData 의 서명이 다르므로 확인이 필요합니다.
                     //motionWindow.PopupAndTabList.SetData(dic, true);
-                    if (V133)
-                    {
-                        //1.33 (VR 1.20) 以前
-                        _m_SetData.Invoke(motionWindow.PopupAndTabList, new object[] { dic });
-                    } else
-                    {
-                        //1.34 以降
-                        _m_SetData.Invoke(motionWindow.PopupAndTabList, new object[] { dic, true });
-                    }
+                    //public void SetData(Dictionary<string, List<KeyValuePair<string, object>>> popup_and_button_name_list, Dictionary<string, List<string>> buttonTermList, bool create_margin = false)
+                    //if (V133)
+                    //{
+                    //    //1.33 (VR 1.20) 以前 이전
+                    //    _m_SetData.Invoke(motionWindow.PopupAndTabList, new object[] { dic });
+                    //} else
+                    //{
+                    //1.34 以降
+                    //_m_SetData.Invoke(motionWindow.PopupAndTabList, new object[] { dic, true });
+
+                    //1.47
+                    // 		MotionWindow.Awake() : void @06004368
+                    _m_SetData.Invoke(motionWindow.PopupAndTabList, new object[] { dic, dictionary, true });
+                    //}
                     yield break;
                 }
                 yield return new WaitForSeconds(1.0f);
@@ -211,32 +228,35 @@ namespace COM3D2.PhotoModeDictionary.Plugin
                 Debug.Log("PhotoModeDictionary.LoadAndAddPhotoMotionDataFromYotogiData.GetCurrentDirectory : " + Directory.GetCurrentDirectory());
                 foreach (string DirectoryName in Directory.GetDirectories(Directory.GetCurrentDirectory() + @"\" + path.Value, "*", SearchOption.TopDirectoryOnly))
                 {
-                    Debug.Log("PhotoModeDictionary.LoadAndAddPhotoMotionDataFromYotogiData.DirectoryName : " + DirectoryName);
+                    Debug.Log("PhotoModeDictionary.DirectoryName : " + DirectoryName);
                     uint nameCRC = 0;
                     category_motions = new List<PhotoMotionData>();
                     yotogiMotions.Add(Path.GetFileNameWithoutExtension(DirectoryName), category_motions);
                     //                foreach(string FileName in Directory.EnumerateFiles(DirectoryName,"*.anm")){
                     foreach (string FileName in Directory.GetFiles(DirectoryName, "*.anm", SearchOption.TopDirectoryOnly))
-                    {
-                        Debug.Log("PhotoModeDictionary.LoadAndAddPhotoMotionDataFromYotogiData.FileName : "+ FileName);
+                    {                        
                         wf.CRC32 crc = new wf.CRC32();
                         nameCRC = crc.ComputeChecksum(Encoding.UTF8.GetBytes(FileName));
                         PhotoMotionData motionData = (PhotoMotionData)photoMotionData_constructor.Invoke(null);
-                        motionData.id = -5 + nameCRC;
+                        //motionData.id = -5 + nameCRC;
+                        motionData.id = (long)FileName.GetHashCode();
                         motionData.name = Path.GetFileNameWithoutExtension(FileName);
                         motionData.category = DirectoryName;
                         motionData.call_script_fil = null;
                         motionData.call_script_label = null;
-                        motionData.direct_file = motionData.name + ".anm";
+                        motionData.direct_file = FileName;
                         motionData.is_loop = true;
+                        motionData.is_mod = false;
+                        motionData.is_mypose = true;
                         category_motions.Add(motionData);
+                        Debug.Log("PhotoModeDictionary.data : " + motionData.name+" , "+ motionData.direct_file);
                     }
                 }
                 Console.WriteLine("Found " + count + " motions.");
             }
             catch (Exception)
             {
-                Console.WriteLine(@"PhotoModeDictionary : \Mod\PhotoMode 디렉토리 없음 ");
+                Console.WriteLine(@"PhotoModeDictionary 디렉토리 없음 :"+ Directory.GetCurrentDirectory() + @"\" + path.Value);
             }
         }
 
