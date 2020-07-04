@@ -45,20 +45,34 @@ namespace COM3D2.PhotoModeDictionary.Plugin
             "SetData", BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod);
 
         IniKey path ;
+        private int GameVersion
+        {
+            get
+            {
+                return (int)typeof(Misc).GetField("GAME_VERSION").GetValue(null);
+            }
+        }
+
 
         public void Awake()
-		{
+        {
             //Debug.Log("PhotoModeDictionary Awake ");
-			try
-			{
-				GameObject.DontDestroyOnLoad(this);
-				SceneManager.sceneLoaded += OnSceneLoaded;
+            try
+            {
+                GameObject.DontDestroyOnLoad(this);
+                SceneManager.sceneLoaded += OnSceneLoaded;
             }
-			catch (Exception e)
-			{
-				Debug.LogError(e.ToString());
-			}
-		}
+            catch (Exception e)
+            {
+                Debug.LogError(e.ToString());
+            }
+            Log("Awake" , GameVersion);
+        }
+
+        private void Log(string m,object s)
+        {
+            Debug.Log("PhotoModeDictionary"+m+":"+s);
+        }
 
         //설정값 생성 테스트
         private void LoadConfig()
@@ -75,14 +89,14 @@ namespace COM3D2.PhotoModeDictionary.Plugin
                 path.Value = @"PhotoModeData\MyPose";
                 SaveConfig();
             }
-            Debug.Log("PhotoModeDictionary.LoadConfig.path : " + path.Value);
+            Log("LoadConfig.path" , path.Value);
         }
 
 
         //장면이 바뀔때마다
         private void OnSceneLoaded(Scene scene, LoadSceneMode sceneMode)
 		{
-            Debug.Log("PhotoModeDictionary.OnSceneLoaded : "+scene.name);
+            Log("OnSceneLoaded",scene.name);
             StopAllCoroutines();
 			try
 			{
@@ -150,7 +164,7 @@ namespace COM3D2.PhotoModeDictionary.Plugin
                         PhotoMotionData.popup_category_list.Add(new KeyValuePair<string, UnityEngine.Object>(categoryName, null));
                     }
                     wasSetToPhotoMotionData = true;
-                    Debug.Log("PhotoModeDictionary.OnSceneLoaded : Yotogi Motion Data set to the PhotoMotionData");
+                    Log("OnSceneLoaded","Yotogi Motion Data set to the PhotoMotionData");
                     //Console.WriteLine("Yotogi Motion Data set to the PhotoMotionData");
                     yield break;
                 }
